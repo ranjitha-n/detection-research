@@ -1,0 +1,18 @@
+title: PowerShell Encoded Command Execution
+status: experimental
+
+logsource:
+  product: windows
+  category: process_creation
+
+detection:
+  selection:
+    Image|endswith: '\powershell.exe'
+    CommandLine|contains: '-EncodedCommand'
+
+  condition: selection
+
+falsepositives:
+  - Legitimate scripts or tools using encoded PowerShell
+
+level: medium

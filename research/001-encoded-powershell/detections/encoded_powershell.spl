@@ -1,0 +1,3 @@
+index="index_1" sourcetype="sourcetype_1"
+| where like(process, "%powershell.exe%") AND EventCode=4688 AND like(command_line, "%-EncodedCommand%")
+| table _time, process, EventCode, command_line
