@@ -286,6 +286,205 @@ The table and field names represent the controlled test schema rather than a spe
 
 ---
 
+## KQL Logic Explained
+
+The KQL detection first groups authentication activity by user and summarizes the behaviour observed for each account.
+
+```kusto
+AuthenticationEvents
+| summarize
+    Failures = countif(Result == "FAIL"),
+    Successes = countif(Result == "SUCCESS"),
+    FirstFailure = minif(Timestamp, Result == "FAIL"),
+    LastFailure = maxif(Timestamp, Result == "FAIL"),
+    FirstSuccess = minif(Timestamp, Result == "SUCCESS"),
+    FailureIPs = make_set_if(SourceIP, Result == "FAIL"),
+    SuccessIPs = make_set_if(SourceIP, Result == "SUCCESS"),
+    FailureLocations = make_set_if(Location, Result == "FAIL"),
+    SuccessLocations = make_set_if(Location, Result == "SUCCESS")
+    by User
+```
+
+### `summarize ... by User`
+
+`summarize` performs aggregation in KQL.
+
+This is similar to `stats` in Splunk SPL.
+
+Grouping `by User` means that the authentication events belonging to each user are analyzed together.
+
+### `countif()`
+
+```kusto
+Failures = countif(Result == "FAIL"),
+Successes = countif(Result == "SUCCESS")
+```
+
+`countif()` counts events only when a condition is true.
+
+For example:
+
+```text
+FAIL
+FAIL
+FAIL
+SUCCESS
+```
+
+produces:
+
+```text
+Failures  = 3
+Successes = 1
+```
+
+### `minif()` and `maxif()`
+
+```kusto
+FirstFailure = minif(Timestamp, Result == "FAIL"),
+LastFailure = maxif(Timestamp, Result == "FAIL"),
+FirstSuccess = minif(Timestamp, Result == "SUCCESS")
+```
+
+These functions are used to understand the order of the authentication activity.
+
+`minif()` returns the earliest timestamp matching a condition.
+
+`maxif()` returns the latest timestamp matching a condition.
+
+For example:
+
+```text
+10:00 FAIL
+10:01 FAIL
+10:02 FAIL
+10:04 SUCCESS
+```
+
+produces:
+
+```text
+FirstFailure = 10:00
+LastFailure  = 10:02
+FirstSuccess = 10:04
+```
+
+This allows the detection to determine whether a successful authentication occurred after the failed attempts.
+
+### `make_set_if()`
+
+```kusto
+FailureIPs = make_set_if(SourceIP, Result == "FAIL"),
+SuccessIPs = make_set_if(SourceIP, Result == "SUCCESS")
+```
+
+`make_set_if()` collects the distinct values associated with events that match a condition.
+
+This preserves useful investigation context.
+
+For example:
+
+```text
+FAIL     203.0.113.10
+FAIL     203.0.113.10
+FAIL     203.0.113.10
+SUCCESS  198.51.100.20
+```
+
+would produce different failure and success IP sets.
+
+This does not automatically mean the activity is malicious. The failed attempts and successful login could belong to different activity involving the same account.
+
+The same logic is used to preserve failure and success locations.
+
+### Failure Threshold
+
+```kusto
+| where Failures >= 3
+```
+
+Only users with at least three failed authentication attempts are kept for further analysis.
+
+Three failures is a controlled lab threshold used for this project. It is not intended to represent a universal production threshold.
+
+### Sequence Classification
+
+```kusto
+| extend Outcome = case(
+    Successes == 0, "Failures Only",
+    FirstSuccess > LastFailure, "Failures followed by Success",
+    "Other Sequence"
+)
+```
+
+`case()` assigns a label based on the authentication sequence.
+
+If no successful authentication exists:
+
+```text
+FAIL → FAIL → FAIL
+```
+
+the result is:
+
+```text
+Failures Only
+```
+
+If the first successful authentication occurred after the last failed authentication:
+
+```text
+FAIL → FAIL → FAIL → SUCCESS
+```
+
+the result is:
+
+```text
+Failures followed by Success
+```
+
+Other patterns are classified as:
+
+```text
+Other Sequence
+```
+
+### `project`
+
+```kusto
+| project User, Failures, Successes, FirstFailure, LastFailure, FirstSuccess, FailureIPs, SuccessIPs, FailureLocations, SuccessLocations, Outcome
+```
+
+`project` controls which fields are displayed in the final result.
+
+This is similar to using `table` in Splunk SPL.
+
+## Current Detection Limitation
+
+The current query identifies the order of the authentication events, but it does not yet properly enforce a time window.
+
+For example:
+
+```text
+Monday  FAIL
+Monday  FAIL
+Monday  FAIL
+
+Friday  SUCCESS
+```
+
+The successful authentication still occurred after the failures, so the current logic could classify this as:
+
+```text
+Failures followed by Success
+```
+
+That is not the behaviour this detection is intended to identify.
+
+The next version should therefore add time-based correlation so that the successful authentication must occur shortly after the failed attempts, for example within a controlled 10-minute test window.
+
+---------------------------------------------
+
 # Sigma
 
 [`detections/failed_logins_followed_by_success.yml`](detections/failed_logins_followed_by_success.yml)
