@@ -1,0 +1,10 @@
+index="<index>" sourcetype="<sourcetype>"
+| where like(process, "%powershell.exe%") AND (
+    like(parent_process, "%python.exe%") OR
+    like(parent_process, "%WINWORD.EXE%") OR
+    like(parent_process, "%EXCEL.EXE%") OR
+    like(parent_process, "%wscript.exe%") OR
+    like(parent_process, "%cscript.exe%") OR
+    like(parent_process, "%mshta.exe%")
+)
+| table _time, user, parent_process, process, command_line

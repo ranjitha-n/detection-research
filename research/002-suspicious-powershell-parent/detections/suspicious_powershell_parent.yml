@@ -1,0 +1,27 @@
+title: PowerShell Launched by Selected Parent Processes
+id: 807bf34c-9e60-4ffa-acde-86c647e36865
+status: experimental
+
+logsource:
+  product: windows
+  category: process_creation
+
+detection:
+  selection_powershell:
+    Image|endswith: '\powershell.exe'
+
+  selection_parent:
+    ParentImage|endswith:
+      - '\python.exe'
+      - '\WINWORD.EXE'
+      - '\EXCEL.EXE'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+
+  condition: selection_powershell and selection_parent
+
+falsepositives:
+  - Legitimate applications, scripts, or automation that launch PowerShell
+
+level: medium
