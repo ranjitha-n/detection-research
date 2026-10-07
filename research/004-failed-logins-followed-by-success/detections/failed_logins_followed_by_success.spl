@@ -1,0 +1,12 @@
+index="detection_lab"
+| stats
+    count(eval(result="FAIL")) AS failures
+    count(eval(result="SUCCESS")) AS successes
+    values(eval(if(result="FAIL",src_ip,null()))) AS failure_ips
+    values(eval(if(result="SUCCESS",src_ip,null()))) AS success_ips
+    values(eval(if(result="FAIL",location,null()))) AS failure_locations
+    values(eval(if(result="SUCCESS",location,null()))) AS success_locations
+    BY user
+| where failures >= 3
+| eval outcome=if(successes>0,"Failures + Success","Failures Only")
+| table user failures successes failure_ips success_ips failure_locations success_locations outcome

@@ -1,0 +1,22 @@
+title: Windows Failed and Successful Logon Events
+id: 40f6b6d1-b29d-45e6-b10a-85c1bd81e749
+status: experimental
+
+logsource:
+  product: windows
+  service: security
+
+detection:
+  authentication_events:
+    EventID:
+      - 4624
+      - 4625
+
+  condition: authentication_events
+
+falsepositives:
+  - Normal user authentication activity
+  - Users entering incorrect passwords before successfully authenticating
+  - Applications or services generating repeated authentication attempts
+
+level: medium
