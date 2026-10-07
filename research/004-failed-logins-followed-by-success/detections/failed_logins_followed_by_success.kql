@@ -2,11 +2,18 @@ AuthenticationEvents
 | summarize
     Failures = countif(Result == "FAIL"),
     Successes = countif(Result == "SUCCESS"),
+    FirstFailure = minif(Timestamp, Result == "FAIL"),
+    LastFailure = maxif(Timestamp, Result == "FAIL"),
+    FirstSuccess = minif(Timestamp, Result == "SUCCESS"),
     FailureIPs = make_set_if(SourceIP, Result == "FAIL"),
     SuccessIPs = make_set_if(SourceIP, Result == "SUCCESS"),
     FailureLocations = make_set_if(Location, Result == "FAIL"),
     SuccessLocations = make_set_if(Location, Result == "SUCCESS")
     by User
 | where Failures >= 3
-| extend Outcome = iff(Successes > 0, "Failures + Success", "Failures Only")
-| project User, Failures, Successes, FailureIPs, SuccessIPs, FailureLocations, SuccessLocations, Outcome
+| extend Outcome = case(
+    Successes == 0, "Failures Only",
+    FirstSuccess > LastFailure, "Failures followed by Success",
+    "Other Sequence"
+)
+| project User, Failures, Successes, FirstFailure, LastFailure, FirstSuccess, FailureIPs, SuccessIPs, FailureLocations, SuccessLocations, Outcome

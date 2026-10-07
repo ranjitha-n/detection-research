@@ -1,12 +1,14 @@
 index="detection_lab"
-| stats
-    count(eval(result="FAIL")) AS failures
-    count(eval(result="SUCCESS")) AS successes
-    values(eval(if(result="FAIL",src_ip,null()))) AS failure_ips
-    values(eval(if(result="SUCCESS",src_ip,null()))) AS success_ips
-    values(eval(if(result="FAIL",location,null()))) AS failure_locations
-    values(eval(if(result="SUCCESS",location,null()))) AS success_locations
-    BY user
+| sort 0 _time
+| transaction user maxspan=10m
+| eval failures=mvcount(mvfilter(result="FAIL"))
+| eval successes=mvcount(mvfilter(result="SUCCESS"))
+| eval first_result=mvindex(result,0)
+| eval last_result=mvindex(result,-1)
 | where failures >= 3
-| eval outcome=if(successes>0,"Failures + Success","Failures Only")
-| table user failures successes failure_ips success_ips failure_locations success_locations outcome
+| eval outcome=case(
+    first_result="FAIL" AND last_result="SUCCESS","Failures followed by Success",
+    successes=0,"Failures Only",
+    1=1,"Other Sequence"
+)
+| table user failures successes first_result last_result src_ip location duration outcome
