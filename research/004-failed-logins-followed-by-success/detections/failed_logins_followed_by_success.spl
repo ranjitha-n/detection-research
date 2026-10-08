@@ -1,14 +1,24 @@
-index="detection_lab"
-| sort 0 _time
-| transaction user maxspan=10m
-| eval failures=mvcount(mvfilter(result="FAIL"))
-| eval successes=mvcount(mvfilter(result="SUCCESS"))
-| eval first_result=mvindex(result,0)
-| eval last_result=mvindex(result,-1)
-| where failures >= 3
-| eval outcome=case(
-    first_result="FAIL" AND last_result="SUCCESS","Failures followed by Success",
-    successes=0,"Failures Only",
-    1=1,"Other Sequence"
-)
-| table user failures successes first_result last_result src_ip location duration outcome
+` V4: event-sequence correlation; use synthetic CSV imported to index=detection_lab `
+` A success closes a sequence; later successes cannot reuse its failures. `
+index="detection_lab" (result="FAIL" OR result="SUCCESS")
+| sort 0 user _time
+| eval is_success=if(result="SUCCESS",1,0)
+| streamstats sum(is_success) as completed_successes by user
+| eval sequence_id=completed_successes-is_success
+| stats count(eval(result="FAIL")) as failures
+        count(eval(result="SUCCESS")) as successes
+        min(eval(if(result="FAIL",_time,null()))) as first_failure
+        max(eval(if(result="FAIL",_time,null()))) as last_failure
+        min(eval(if(result="SUCCESS",_time,null()))) as success_time
+        values(eval(if(result="FAIL",src_ip,null()))) as failure_ips
+        values(eval(if(result="SUCCESS",src_ip,null()))) as success_ips
+        values(eval(if(result="FAIL",location,null()))) as failure_locations
+        values(eval(if(result="SUCCESS",location,null()))) as success_locations
+        by user sequence_id
+| where failures>=3 AND successes=1
+    AND first_failure<success_time AND last_failure<success_time
+    AND success_time-first_failure<=600
+| eval duration_seconds=success_time-first_failure
+| convert ctime(first_failure) ctime(last_failure) ctime(success_time)
+| table user sequence_id failures first_failure last_failure success_time duration_seconds failure_ips success_ips failure_locations success_locations
+| sort 0 user success_time
