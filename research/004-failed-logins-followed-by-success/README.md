@@ -57,6 +57,8 @@ A sequence at **10:00, 10:01, 10:02 FAIL → 10:20 SUCCESS** is not a match: fir
 
 ### [SPL V4](detections/failed_logins_followed_by_success.spl)
 
+For local CSV lookup testing, replace the initial `index=...` search with `| inputlookup synthetic_authentication_scenarios.csv | eval _time=strptime(timestamp,"%Y-%m-%d %H:%M:%S")`. The rest of the sequence logic stays the same. In a deployed search, restore the indexed source and verify field mappings.
+
 - `sort 0 user _time`: order each account's events chronologically.
 - `eval is_success`: mark success events with 1.
 - `streamstats sum(is_success) ... by user`: running number of successes seen for each account.
@@ -82,10 +84,7 @@ A sequence at **10:00, 10:01, 10:02 FAIL → 10:20 SUCCESS** is not a match: fir
 
 ## Synthetic test data and evidence
 
-- [Original six-user lab data](test-data/authentication_events.csv) — preserved for V1/V2 history.
-- [Nine focused V4 scenarios](test-data/synthetic_authentication_scenarios.csv).
-- [Expected detection counts](test-data/expected_results.csv).
-- [Executable Python reference model](test-data/test_sequences.py) — run `python test-data/test_sequences.py` from any directory.
+One dataset: [synthetic_authentication_scenarios.csv](test-data/synthetic_authentication_scenarios.csv). It contains nine scenarios with ordinary test usernames (alice, frank, bob, carol, david, emma, grace, henry, iris). The `scenario` column identifies each test independently. Use the same CSV in Splunk (lookup) and Azure Data Explorer (table ingestion) to compare results. V1 and V2 are documented above as research iterations; the repository keeps only the current query files.
 
 | Scenario | Expected detections |
 | --- | ---: |
@@ -99,7 +98,7 @@ A sequence at **10:00, 10:01, 10:02 FAIL → 10:20 SUCCESS** is not a match: fir
 | `repeated_success_no_new_failures` | 1 |
 | `exact_ten_min_boundary` | 1 |
 
-The expected results define the **intended behaviour**, not verified SPL/KQL outputs. The reference model can be executed locally and is useful for regression testing. **Platform validation remains pending**: import the CSV, run both queries, save actual result tables, and compare the scenario-by-scenario counts. Do not report platform test success until that is done.
+These counts are **expected**, not verified SPL/KQL outputs. **Platform validation remains pending**: run the SPL and KQL queries, save screenshots or result tables, and compare observed counts per scenario. The total expected number of detections is **7**. Do not claim platform success until tested.
 
 ## Sigma: telemetry selection versus correlation
 
@@ -127,7 +126,7 @@ The earlier README recorded `sigma check` returning **0 errors, 0 condition erro
 - Search-window boundaries may hide earlier failures or successes. Run with enough lookback and define how detections are deduplicated across scheduled executions.
 - No logon-type filtering, account allowlists, asset criticality, rate baselines or production thresholds have been tuned yet.
 - Sort/window operations may be costly for high-volume data. Benchmark against real workloads.
-- The reference test validates the **specification**; it is **not** an execution engine for SPL/KQL. Capture actual platform results and investigate mismatches before calling V4 production-ready.
+- The synthetic scenarios define test expectations; capture actual SPL/KQL execution evidence and investigate mismatches before calling V4 production-ready.
 
 ## Research takeaway
 
