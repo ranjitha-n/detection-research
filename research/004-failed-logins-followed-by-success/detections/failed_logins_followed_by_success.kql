@@ -1,19 +1,29 @@
+// V4: event-sequence correlation for the synthetic AuthenticationEvents schema.
+// A SUCCESS closes the preceding sequence; a subsequent SUCCESS cannot reuse its failures.
+// Assumes Timestamp is datetime, Result is FAIL/SUCCESS, and User is populated.
+// For equal timestamps, add a stable event ID to the sort key if available.
 AuthenticationEvents
+| where Result in ("FAIL", "SUCCESS")
+| sort by User asc, Timestamp asc
+| serialize
+| extend IsSuccess = toint(Result == "SUCCESS")
+| extend CompletedSuccesses = row_cumsum(IsSuccess, User != prev(User))
+| extend SequenceId = CompletedSuccesses - IsSuccess
 | summarize
-    Failures = countif(Result == "FAIL"),
-    Successes = countif(Result == "SUCCESS"),
+    FailureCount = countif(Result == "FAIL"),
+    SuccessCount = countif(Result == "SUCCESS"),
     FirstFailure = minif(Timestamp, Result == "FAIL"),
     LastFailure = maxif(Timestamp, Result == "FAIL"),
-    FirstSuccess = minif(Timestamp, Result == "SUCCESS"),
+    SuccessTime = minif(Timestamp, Result == "SUCCESS"),
     FailureIPs = make_set_if(SourceIP, Result == "FAIL"),
     SuccessIPs = make_set_if(SourceIP, Result == "SUCCESS"),
     FailureLocations = make_set_if(Location, Result == "FAIL"),
     SuccessLocations = make_set_if(Location, Result == "SUCCESS")
-    by User
-| where Failures >= 3
-| extend Outcome = case(
-    Successes == 0, "Failures Only",
-    FirstSuccess > LastFailure, "Failures followed by Success",
-    "Other Sequence"
-)
-| project User, Failures, Successes, FirstFailure, LastFailure, FirstSuccess, FailureIPs, SuccessIPs, FailureLocations, SuccessLocations, Outcome
+    by User, SequenceId
+| where FailureCount >= 3 and SuccessCount == 1
+| where FirstFailure < SuccessTime and LastFailure < SuccessTime
+| where SuccessTime - FirstFailure <= 10m
+| project User, SequenceId, FailureCount, FirstFailure, LastFailure,
+          SuccessTime, Duration = SuccessTime - FirstFailure,
+          FailureIPs, SuccessIPs, FailureLocations, SuccessLocations
+| order by User asc, SuccessTime asc
