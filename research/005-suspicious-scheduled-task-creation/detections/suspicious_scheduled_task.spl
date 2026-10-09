@@ -1,0 +1,6 @@
+index="index1" earliest=0
+| eval IsPowerShell=if(in(lower(Command),"powershell.exe","pwsh.exe"),1,0)
+| eval HasAppDataScript=if(like(lower(Arguments),"%appdata%") AND like(lower(Arguments),"%.ps1%"),1,0)
+| eval IsLogonTrigger=if(lower(LogonTrigger)="true",1,0)
+| where IsPowerShell=1 AND HasAppDataScript=1 AND IsLogonTrigger=1
+| table _time TaskName Command Arguments LogonTrigger
