@@ -1,0 +1,8 @@
+// Lab table from test-data/project007_mfa_events.csv
+Project007MfaEvents
+| where Result == "DENIED"
+| summarize Denials=count(), SourceIPs=make_set(IPAddress)
+    by User, WindowStart=bin(Timestamp,10m)
+| where Denials >= 3
+| project User, WindowStart, Denials, SourceIPs
+| order by WindowStart asc
