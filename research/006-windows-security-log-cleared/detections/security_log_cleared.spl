@@ -1,0 +1,3 @@
+| inputlookup project006_windows_events.csv
+| where tonumber(EventCode)=1102
+| table Timestamp Host User EventCode
