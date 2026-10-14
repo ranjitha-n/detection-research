@@ -14,6 +14,9 @@ The goal is not simply to write detection queries, but to understand **why a det
 | [002 — Suspicious PowerShell Parent Process](research/002-suspicious-powershell-parent/) | Investigates unusual processes launching PowerShell. | Parent-child process relationships, Event 4688, controlled testing |
 | [003 — Password Spraying](research/003-password-spraying/) | Identifies authentication failures across multiple accounts from a shared source IP. | Authentication analysis, aggregation, false positives |
 | [004 — Failed Logins Followed by Success](research/004-failed-logins-followed-by-success/) | Investigates repeated failed logins followed by a successful login. | Event correlation, sequence detection, time windows, detection tuning |
+| [005 — Suspicious Scheduled Task Creation](research/005-suspicious-scheduled-task-creation/) | Identifies PowerShell scheduled tasks configured to execute scripts from AppData at logon. | Windows Event 4698, SPL, PowerShell validation |
+| [006 — Windows Security Log Cleared](research/006-windows-security-log-cleared/) | Identifies Security audit log clearing (Event 1102). **Draft; validation pending.** | Defence evasion, event filtering |
+| [007 — Repeated MFA Denials](research/007-entra-mfa-denial-burst/) | Investigates repeated denied MFA requests per identity. **Draft; validation pending.** | Identity security, time-window aggregation |
 
 ## Repository Structure
 
@@ -26,7 +29,10 @@ detection-research/
     ├── 001-encoded-powershell/
     ├── 002-suspicious-powershell-parent/
     ├── 003-password-spraying/
-    └── 004-failed-logins-followed-by-success/
+    ├── 004-failed-logins-followed-by-success/
+    ├── 005-suspicious-scheduled-task-creation/
+    ├── 006-windows-security-log-cleared/
+    └── 007-entra-mfa-denial-burst/
 ```
 
 Each project has its own README describing the detection hypothesis, research process, findings, and limitations.
@@ -65,7 +71,7 @@ These projects are learning and research exercises, not production-ready detecti
 
 Some projects include controlled Windows event testing and evidence. Others contain synthetic test scenarios and detection queries awaiting full platform validation.
 
-Each project's README explains what has been tested and what remains to be verified.
+Each project's README explains what has been tested and what remains to be verified. **Projects 006 and 007 are draft research ideas with synthetic CSVs; SPL and KQL have not yet been run on those datasets.**
 
 ## Research Objective
 
