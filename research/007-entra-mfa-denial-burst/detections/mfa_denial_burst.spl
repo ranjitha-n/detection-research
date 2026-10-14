@@ -1,0 +1,8 @@
+| inputlookup project007_mfa_events.csv
+| eval _time=strptime(Timestamp,"%Y-%m-%d %H:%M:%S")
+| where Result="DENIED"
+| bin _time span=10m
+| stats count as denials values(IPAddress) as source_ips by User _time
+| where denials>=3
+| eval WindowStart=strftime(_time,"%Y-%m-%d %H:%M:%S")
+| table User WindowStart denials source_ips
