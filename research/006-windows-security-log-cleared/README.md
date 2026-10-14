@@ -12,7 +12,7 @@ Look for Event ID **1102** and show **when**, **on which computer**, and **by wh
 
 ## Simple test plan
 
-The [synthetic CSV](test-data/project006_windows_events.csv) contains three example events, including **one** 1102 event. Expected output: **one row** (`LAB-WS01`, `LAB\\admin`).
+The [synthetic CSV](test-data/project006_windows_events.csv) contains three example events, including **one** 1102 event. Expected output: **one row** (`LAB-WS01`, `LAB\admin`).
 
 - [Splunk SPL — CSV lookup lab](detections/security_log_cleared.spl)
 - [KQL — Azure Data Explorer lab](detections/security_log_cleared.kql)
