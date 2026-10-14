@@ -1,0 +1,5 @@
+// Lab table from test-data/project006_windows_events.csv
+Project006Events
+| where EventCode == 1102
+| project Timestamp, Host, User, EventCode
+| order by Timestamp asc
