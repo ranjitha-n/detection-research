@@ -1,0 +1,4 @@
+Timestamp,EventCode,Host,User
+2026-10-10 09:01:00,4624,LAB-WS01,LAB\analyst
+2026-10-10 09:03:00,1102,LAB-WS01,LAB\admin
+2026-10-10 09:05:00,4688,LAB-WS01,LAB\analyst
