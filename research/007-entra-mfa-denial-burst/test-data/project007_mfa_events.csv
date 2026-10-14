@@ -1,0 +1,7 @@
+Timestamp,User,Result,IPAddress
+2026-10-10 09:01:00,alice@example.test,DENIED,203.0.113.10
+2026-10-10 09:02:00,bob@example.test,DENIED,203.0.113.20
+2026-10-10 09:03:00,alice@example.test,DENIED,203.0.113.10
+2026-10-10 09:06:00,bob@example.test,DENIED,203.0.113.20
+2026-10-10 09:07:00,alice@example.test,DENIED,203.0.113.10
+2026-10-10 09:09:00,alice@example.test,APPROVED,203.0.113.10
